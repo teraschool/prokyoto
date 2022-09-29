@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <title>Fireworks</title>
+    <meta charset="utf-8">
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="c" style="background: black;"></canvas>
+</body>
+<script>
+    let pauseFlag = false;
+
+    const c = document.getElementById("c");
+    const g = c.getContext("2d");
+
+    const fireworks = [];
+    const sparks = [];
+
+    function autosize() {
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+    }
+
+    function random(a, b) {
+        return Math.random() * (Math.max(a, b) - Math.min(a, b)) + Math.min(a, b);
+    }
+
+    function setContextProps(g) {
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.globalCompositeOperation = "source-over";
+        g.fillStyle = "#0002";
+        g.fillRect(0, 0, c.width, c.height);
+        g.globalCompositeOperation = "lighter";
+    }
+
+    function launchFirework() {
+        fireworks.push({
+            x: random(0, c.width),
+            y: 0,
+            v: random(8, 12),
+            c: "hsla(" + random(0, 360) + ",100%, 70%, 0.9)"
+        });
+    }
+
+    function explodeFirework(fw) {
+        for (let i = 0; i < random(24, 36); i++) {
+            const r = random(-Math.PI, Math.PI);
+            const v = random(4, 2);
+            sparks.push({
+                x: fw.x,
+                y: fw.y,
+                vx: Math.cos(r) * v,
+                vy: Math.sin(r) * v,
+                c: fw.c
+            });
+        }
+    }
+
+    function updateFirework(i) {
+        const fw = fireworks[i];
+        fw.v -= 0.1;
+        if (fw.v < 0) {
+            explodeFirework(fireworks.splice(i, 1)[0]);
+        } else {
+            fw.y += fw.v;
+        }
+    }
+
+    function drawFirework(i) {
+        const fw = fireworks[i];
+        g.strokeStyle = fw.c;
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(fw.x + 2 * Math.cos(fw.y / 7), fw.y);
+        g.lineTo(fw.x, fw.y + fw.v);
+        g.stroke();
+    }
+
+    function updateSpark(i) {
+        const sp = sparks[i];
+        sp.vy -= 0.1;
+        sp.y += sp.vy;
+        sp.x += sp.vx;
+        if (sp.y < 0) {
+            sparks.splice(i, 1);
+        }
+    }
+
+    function drawSpark(i) {
+        const sp = sparks[i];
+        g.strokeStyle = sp.c;
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.moveTo(sp.x, sp.y);
+        g.lineTo(sp.x + sp.vx, sp.y + sp.vy);
+        g.stroke();
+    }
+
+    c.onclick = function() {
+        pauseFlag = !pauseFlag;
+    };
+
+    window.onresize = autosize;
+    window.onload = function() {
+        autosize();
+        (function() {
+            if (!pauseFlag) {
+                setContextProps(g);
+
+                if (Math.random() < 0.025) {
+                    launchFirework();
+                }
+
+                g.setTransform(1, 0, 0, -1, 0, c.height);
+
+                for (let i = 0; i < fireworks.length; i++) {
+                    drawFirework(i);
+                    updateFirework(i);
+                }
+
+                for (let i = 0; i < sparks.length; i++) {
+                    drawSpark(i);
+                    updateSpark(i);
+                }
+            }
+
+            requestAnimationFrame(arguments.callee);
+        })();
+
+    };
+
+</script>
+
+</html>

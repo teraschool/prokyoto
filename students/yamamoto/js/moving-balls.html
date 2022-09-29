@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <style>
+        body {
+            margin: 0;
+            background-color: #eee;
+        }
+
+        canvas {
+            background: transparent;
+            position: absolute;
+            top: calc(50% - 250px);
+            left: calc(50% - 250px);
+            border-radius: 2%;
+            box-shadow: 0 4px rgba(0, 0, 0, 0.2);
+        }
+
+        footer {
+            position: absolute;
+            bottom: 4px;
+            display: block;
+            width: 100%;
+            text-align: center;
+            color: #666;
+            user-select: none;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="canvas" width="500px" height="500"></canvas>
+    <canvas id="overlay" width="500px" height="500"></canvas>
+    <footer>&copy;2018 falling-balls.</footer>
+</body>
+<script>
+    const canvas = document.getElementById("canvas");
+    const overlay = document.getElementById("overlay");
+    const ctx = canvas.getContext("2d");
+    const otx = overlay.getContext("2d");
+
+    const play = new Image();
+    play.src = "./play.png";
+
+    const stop = new Image();
+    stop.src = "./stop.png";
+
+    let PLAY = true;
+    let ICON_STATE = 1;
+
+    const g = 0.05; //9.80665; //[m/s^2]
+
+    const WIDTH = canvas.width; //[m]
+    const HEIGHT = canvas.height; // [m]
+
+    const mouse = {
+        "x": WIDTH / 2,
+        "y": HEIGHT / 2,
+        "ox": this.x,
+        "oy": this.y
+    }
+
+    const MAX_BALLS = 50;
+    const balls = [];
+
+    function Ball(flg) {
+        this.color = flg ? 180 : rnd(0, 360);
+        this.r = flg ? 30 : rnd(10, 15);
+        this.x = flg ? WIDTH / 2 : rnd(this.r * 2, WIDTH - this.r * 2);
+        this.y = flg ? HEIGHT / 2 : rnd(this.r * 2, HEIGHT - this.r * 2);
+        this.vel = {
+            x: (flg ? 0 : rnd(-2, 2)),
+            y: (flg ? 0 : rnd(-2, 2))
+        }
+        this.m = flg ? 10 : this.r / 2;
+
+        this.update = function() {
+            if (flg) {
+                this.x = mouse.x;
+                this.y = mouse.y;
+                this.vel.x = (mouse.x - mouse.ox) / 10;
+                this.vel.y = (mouse.y - mouse.oy) / 10;
+                this.draw();
+                return;
+            }
+            for (let i = 0; i < MAX_BALLS; i++) {
+                if (this === balls[i]) continue;
+                if (distance(this.x, this.y, balls[i].x, balls[i].y) < this.r + balls[i].r) {
+                    resolve_collision(this, balls[i]);
+                }
+            }
+
+            if (this.x <= this.r || this.x >= WIDTH - this.r) {
+                this.vel.x = -this.vel.x * 0.9;
+            }
+            if (this.y <= this.r || this.y >= HEIGHT - this.r) {
+                this.vel.y = -this.vel.y * 0.9;
+            }
+
+            this.x += this.vel.x;
+            this.y += this.vel.y;
+            this.draw();
+        }
+
+        this.draw = function() {
+            if (flg) return;
+            ctx.translate(this.x, this.y);
+            ctx.fillStyle = "hsl(" + this.color + ", 80%, 60%";
+            ctx.strokeStyle = "hsl(" + this.color + ", 80%, 30%";
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.arc(0, 0, this.r, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.stroke();
+        }
+    }
+
+    function toRadians(deg) {
+        return deg * (Math.PI / 180);
+    }
+
+    function rnd(a, b) {
+        return Math.random() * (Math.max(a, b) - Math.min(a, b)) + Math.min(a, b);
+    }
+
+    function distance(x1, y1, x2, y2) {
+        const a = Math.pow(x1 - x2, 2);
+        const b = Math.pow(y1 - y2, 2);
+        return Math.sqrt(a + b);
+    }
+
+    function resolve_collision(b1, b2) {
+        const vxd = b1.vel.x - b2.vel.x;
+        const vyd = b1.vel.y - b2.vel.y;
+
+        const xdist = b2.x - b1.x;
+        const ydist = b2.y - b1.y;
+
+        if (vxd * xdist + vyd * ydist >= 0) {
+            const angle = -Math.atan2(b2.y - b1.y, b2.x - b1.x);
+
+            const m1 = b1.m;
+            const m2 = b2.m;
+
+            const u1 = rotate(b1.vel, angle);
+            const u2 = rotate(b2.vel, angle);
+
+            const v1 = {
+                x: u1.x * (m1 - m2) / (m1 + m2) + u2.x * 2 * m2 / (m1 + m2),
+                y: u1.y
+            };
+            const v2 = {
+                x: u2.x * (m1 - m2) / (m1 + m2) + u1.x * 2 * m2 / (m1 + m2),
+                y: u2.y
+            };
+
+            const vf1 = rotate(v1, -angle);
+            const vf2 = rotate(v2, -angle);
+
+            b1.vel = vf1;
+            b2.vel = vf2;
+        }
+    }
+
+    function rotate(vel, angle) {
+        const rv = {
+            x: vel.x * Math.cos(angle) - vel.y * Math.sin(angle),
+            y: vel.x * Math.cos(angle) + vel.y * Math.sin(angle)
+        }
+        return rv;
+    }
+
+    function draw() {
+        requestAnimationFrame(draw);
+        if (PLAY) {
+            //Draw the background
+            ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            //Draw balls
+            for (let i = 0; i < MAX_BALLS; i++) {
+                balls[i].update();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+            }
+        }
+
+        otx.clearRect(0, 0, WIDTH, HEIGHT);
+
+        otx.fillStyle = "rgba(0,0,0,0.1)";
+        otx.beginPath();
+        otx.arc(mouse.x, mouse.y, 30, 0, 2 * Math.PI);
+        otx.fill();
+
+        otx.save();
+        otx.setTransform(1 - ICON_STATE, 0, 0, 1 - ICON_STATE, WIDTH / 2, HEIGHT / 2);
+        otx.globalAlpha = ICON_STATE / 2;
+        otx.drawImage((PLAY ? play : stop), -50, -50, 100, 100);
+        otx.restore();
+
+        ICON_STATE *= 0.9;
+    }
+
+    window.onload = function() {
+        overlay.onmousemove = function(e) {
+            const rect = e.target.getBoundingClientRect();
+            mouse.ox = mouse.x;
+            mouse.oy = mouse.y;
+            mouse.x = e.clientX - rect.left;
+            mouse.y = e.clientY - rect.top;
+        }
+        overlay.onclick = function(e) {
+            ICON_STATE = 1;
+            PLAY = !PLAY;
+        }
+        balls.push(new Ball(true));
+        for (let i = 0; i < MAX_BALLS; i++) {
+            balls.push(new Ball(false));
+        }
+        requestAnimationFrame(draw);
+    }
+
+</script>
+
+</html>

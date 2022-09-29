@@ -1,0 +1,18 @@
+@media screen and (min-width:768px) {
+    body { margin-right: 50px; }
+    .container { display: flex; }
+    .container > .links { width: 60%; }
+    .container > .other-contents { width: 40%; }
+}
+
+.download-section {
+    display: flex;
+}
+
+button.download {
+    margin-left: 1px;
+}
+
+.chat {
+    margin-top: 10px;
+}

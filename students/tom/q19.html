@@ -1,0 +1,28 @@
+<canvas id="canvas" width="600" height="400"></canvas>
+
+<script>
+    //絵を書く時のお約束
+    var ctx = document.querySelector("#canvas").getContext("2d");
+    setInterval(draw, 100); //すぐにアニメーションに入れるようにsetlntervalもお約束
+
+
+    var x = 45;
+    var y = 50;
+
+
+    //絵を書くところ
+    function draw() {
+        ctx.beginPath();
+        ctx.rect(0, 0, 600, 400);
+        ctx.fillStyle = "white"
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, 2 * Math.PI)
+        ctx.stroke();
+
+        x = x + 1;
+        y = y + 1;
+    }
+
+</script>

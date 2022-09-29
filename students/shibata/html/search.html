@@ -1,0 +1,250 @@
+<canvas id="canvas" width="600" height="400"></canvas>
+<script>
+    var ctx = document.querySelector("#canvas").getContext("2d");
+    const WIDTH = 600;
+    const HEIGHT = 400;
+    setInterval(draw, 10);
+    
+    var MAX_WIDTH = 18;
+    var MAX_HEIGHT = 12;
+    
+    //迷路
+    /*var map_data = [
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+        [1,2,1,0,1,0,0,0,1,0,1,1,1,1,1,0,1,1],
+        [1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,1,1],
+        [1,0,0,0,1,0,1,1,1,1,1,1,1,1,0,0,0,1],
+        [1,1,1,1,1,0,1,0,0,0,0,0,0,0,1,1,1,1],
+        [1,0,0,0,0,0,1,0,1,0,1,1,1,0,1,0,0,1],
+        [1,0,1,0,1,1,1,0,1,0,0,0,1,0,1,1,0,1],
+        [1,0,1,0,1,1,1,1,1,0,1,1,1,0,0,0,0,1],
+        [1,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1,0,1],
+        [1,0,1,1,0,1,0,0,1,1,1,1,1,1,0,1,0,1],
+        [1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0,3,1],
+        [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    ];*/
+    //広場
+    var map_data = [];
+    for(var y = 0; y < MAX_HEIGHT; y++){
+        map_data[y] = [];
+        for(var x = 0; x < MAX_WIDTH; x++){
+            map_data[y][x] = 0;
+        }
+    }
+    for(var y = 0; y < MAX_HEIGHT; y++){
+        map_data[y][0] = 1;
+    }
+    for(var y = 0; y < MAX_HEIGHT; y++){
+        map_data[y][MAX_WIDTH-1] = 1;
+    }
+    for(var x = 0; x < MAX_WIDTH; x++){
+        map_data[0][x] = 1;
+    }
+    for(var x = 0; x < MAX_WIDTH; x++){
+        map_data[MAX_HEIGHT-1][x] = 1;
+    }
+    map_data[3][3] = 1;
+    map_data[6][7] = 1;
+    map_data[1][1] = 2;
+    map_data[MAX_HEIGHT-3][MAX_WIDTH-3] = 3;
+        
+    
+    var map_s = [];
+    for(var y = 0; y < map_data.length;y++){
+        map_s[y] = [];
+        for(var x = 0; x < map_data[y].length;x++){
+            map_s[y][x] = new masudata(map_data[y][x]);
+        }
+    }
+    
+
+    
+    var MAP_OFFSET = 20;
+    var SIZE = 30;
+    
+    var f = 0;
+    var count = 0;//追いかける側のスピード
+    
+    //追いかける
+    var player = {
+        x:0,
+        y:0
+    };
+    //目的地
+    var destination = {
+        x:0,
+        y:0
+    };
+    function masudata(num){
+        this.open = false;
+        if(num == 0 || num == 2) {
+           this.go = false;
+        }else{
+           this.go = true;
+           }
+    }
+    
+    
+    
+    function draw(){
+        //背景黒
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.rect(0,0,WIDTH,HEIGHT);
+        ctx.fill();
+        
+        
+        drawMap();//地形描画
+        drawPlayer();//追いかけてくるやつの描画
+        if(count == 10) search();//追いかけてくるやつの移動
+        
+        count++;
+        count %= 30;
+    }
+    
+    //「「探索」」
+    function search(){
+        //map_sの更新
+        for(var y = 0; y < map_s.length;y++){
+            for(var x = 0; x < map_s[y].length;x++){
+                map_s[y][x].open = false;
+                if(destination.x == x && destination.y == y) map_s[y][x].open = true;
+                
+                if(map_data[y][x] == 0) {
+                    map_s[y][x].go = false;
+                }else{
+                    map_s[y][x].go = true;
+                }
+            }
+        }
+        var mituketa = 0;//目的地を見つけたらループから抜けます
+        var mitukaranai = 0;//壁で目的地が見つからないときに無限ループにはまらないようにします
+        
+        while(mituketa == 0){
+            mitukaranai++;
+            if(mitukaranai >= 200) break;
+            for(var y = 0; y < map_s.length;y++){
+                if(mituketa == 1) break;
+                for(var x = 0; x < map_s[y].length;x++){
+                    if(map_s[y][x].open == false) continue;//移動できるか
+                    //探索
+                    //上
+                    mituketa = search2(x,y-1,x,y);
+                    if(mituketa == 1) break;
+                    //左
+                    mituketa = search2(x-1,y,x,y);
+                    if(mituketa == 1) break;
+                    //右
+                    mituketa = search2(x+1,y,x,y);
+                    if(mituketa == 1) break;
+                    //下
+                    mituketa = search2(x,y+1,x,y);
+                    if(mituketa == 1) break;
+
+                    //調べ終わった
+                    map_s[y][x].go = true;
+                    map_s[y][x].open = false;
+                }
+            }
+        }
+        return;
+    }
+    function search2(sx,sy,x,y){
+        if(map_s[sy][sx].go == false && map_s[sy][sx].open == false){
+            if(sy == player.y && sx == player.x) {
+                player.x = x;
+                player.y = y;
+                return 1;
+            }
+            map_s[sy][sx].open = true;
+        }
+        return 0;
+    }
+    
+    //マップ表示
+    function drawMap(){
+        //プレイヤーとゴール
+        if(f == 0) Init();
+        
+        for(var y = 0; y < map_data.length; y++){
+            for(var x = 0; x < map_data[0].length; x++){
+                ctx.beginPath();
+                if(map_data[y][x] == 0) ctx.fillStyle = "green";//移動できるところ
+                if(map_data[y][x] == 1) ctx.fillStyle = "orange";//移動できないところ
+
+                ctx.rect(SIZE * (x + 1) - SIZE + MAP_OFFSET,SIZE * (y + 1) - SIZE + MAP_OFFSET,SIZE,SIZE);
+                ctx.fill();
+                
+                //目的地の描画
+                ctx.beginPath();
+                ctx.fillStyle = "yellow";
+                ctx.arc(SIZE * destination.x + SIZE / 2 + MAP_OFFSET,SIZE * destination.y + SIZE / 2 + MAP_OFFSET,SIZE / 2,0,2*Math.PI);
+                ctx.fill();
+                
+            }
+        }
+    }
+    //設置物
+    function Init(){
+        f = 1;
+        for(var y = 0; y < map_data.length; y++){
+            for(var x = 0; x < map_data[0].length; x++){
+                //プレイヤー
+                if(map_data[y][x] == 2) {
+                     map_data[y][x] = 0;
+                     player.x = x;
+                     player.y = y;
+                }
+                //目的地
+                if(map_data[y][x] == 3){
+                    map_data[y][x] = 0;
+                    destination.x = x;
+                    destination.y = y;
+                    //探索場所の最初
+                    map_s[y][x].open = true;
+                    map_s[y][x].go = true;
+                    map_s[y][x].s = 0;
+                }
+            }
+        }
+        return;
+    }
+    
+    //動くやつ描画
+    function drawPlayer(){
+        ctx.beginPath();
+        ctx.fillStyle = "pink";
+        ctx.arc(player.x * SIZE + MAP_OFFSET + SIZE /2,player.y * SIZE + MAP_OFFSET + SIZE /2,SIZE / 2,0,2*Math.PI);
+        ctx.fill();
+        
+        return;
+    }
+    
+    //目的地の操作
+    document.addEventListener("keydown",sousa);
+    function sousa(ele){
+        var px = destination.x;
+        var py = destination.y;
+        if(ele.key == "ArrowRight") {
+            px++;
+            if(map_data[py][px] != 0) px = destination.x;
+        }
+        if(ele.key == "ArrowLeft") {
+            px--;
+            if(map_data[py][px] != 0) px = destination.x;
+        }
+        if(ele.key == "ArrowUp") {
+            py--;
+            if(map_data[py][px] != 0) py = destination.y;
+        }
+        if(ele.key == "ArrowDown") {
+            py++;
+            if(map_data[py][px] != 0) py = destination.y;
+        }
+        
+        destination.x = px;
+        destination.y = py;
+    }
+    
+
+</script>

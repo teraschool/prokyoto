@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>電卓</title>
+</head>
+
+<body>
+    <p>※右クリックで「ページのソースを表示」を実行</p>
+    <div class="box">
+        <input type="text" id="display" class="answer" value="0">
+        <input type="text" size="1" id="operator">
+
+        <br>
+
+        <input type="button" value="7">
+        <input type="button" value="8">
+        <input type="button" value="9">
+
+        <input type="button" value="+">
+
+        <input type="button" value="clear">
+
+        <br>
+
+        <input type="button" value="4">
+        <input type="button" value="5">
+        <input type="button" value="6">
+
+        <input type="button" value="-">
+
+        <br>
+
+        <input type="button" value="1">
+        <input type="button" value="2">
+        <input type="button" value="3">
+
+        <input type="button" value="*">
+
+        <br>
+
+        <input type="button" value=".">
+        <input type="button" value="0" onclick="add(0);">
+        <input type="button" value="=" onclick="calculate();">
+
+        <input type="button" value="/">
+    </div>
+</body>
+
+<style>
+    .box {
+        /* width: 160px; */
+        display: inline-block;
+        border: 1px solid #000000;
+        padding: 3px;
+    }
+
+    .answer {
+        width: 110px;
+        text-align: right;
+    }
+
+</style>
+
+</html>
+

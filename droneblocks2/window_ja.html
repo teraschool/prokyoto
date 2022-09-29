@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="./css/chrome_app.css">
+    <script src="js/main.js" type="text/javascript"></script>
+    <script src="js/udp.js" type="text/javascript"></script>
+    <script src="js/mission.js" type="text/javascript"></script>
+    <script src="js/utils.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <div id="telemetry">
+      <div style="float: left">
+        バッテリー: <span id="battery">-</span>
+      </div>
+      <div style="float: right">
+        <a id="connectionStatus">Telloに接続する</a>
+      </div>
+      <div style="clear: both"></div>
+    </div>
+    <webview src="http://tsprograming.html.xdomain.jp/droneblocks/chrome_app.html"></webview>
+    <div id="abortButton">
+      <img src="images/abort_button.png" width="120" height="32" />
+    </div>
+  </body>
+</html>

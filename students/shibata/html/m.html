@@ -1,0 +1,103 @@
+<meta charset="UTF-8">
+<p id="test1">test1</p>
+<p id="test2">test2</p>
+<canvas id="canvas" width="600" height="400"></canvas>
+<p>サイズキー:1~6</p>
+<audio id="s" src="b.ogg" controls>
+<script>
+    const WIDTH = 600;
+    const HEIGHT = 400;
+    var ctx = document.querySelector("#canvas").getContext("2d");
+    setInterval(draw, 10);
+
+
+    var A = {
+        x: 100,
+        y: 200,
+        size: 50,
+        color: "white",
+        idou: " "
+    };
+
+    var B = {
+        x: 400,
+        y: 150,
+        x_: 70,
+        y_: 80,
+        idou: " "
+    };
+
+
+    var test1 = document.querySelector("#test1");
+    var test2 = document.querySelector("#test2");
+    var keye = document.querySelector("#keye");
+
+    function draw() {
+        ctx.beginPath();
+        ctx.fillStyle = "black";
+        ctx.rect(0, 0, WIDTH, HEIGHT);
+        ctx.fill();
+
+        //丸
+        ctx.beginPath();
+        ctx.fillStyle = A.color;
+        ctx.arc(A.x, A.y, A.size, 0, Math.PI * 2);
+        ctx.fill();
+
+
+        //四角
+        ctx.beginPath();
+        ctx.fillStyle = "yellow";
+        ctx.rect(B.x, B.y, B.x_, B.y_);
+        ctx.fill();
+        if (B.idou == "right") B.x += 3;
+        if (B.idou == "left") B.x -= 3;
+        if (B.idou == "down") B.y += 3;
+        if (B.idou == "up") B.y -= 3;
+
+
+        //計算
+        if (
+            (A.x - B.x) * (A.x - B.x) + (A.y - B.y) * (A.y - B.y) <= A.size * A.size ||
+            (A.x - (B.x + B.x_)) * (A.x - (B.x + B.x_)) + (A.y - B.y) * (A.y - B.y) <= A.size * A.size ||
+            (A.x - B.x) * (A.x - B.x) + (A.y - (B.y + B.y_)) * (A.y - (B.y + B.y_)) <= A.size * A.size ||
+            (A.x - (B.x + B.x_)) * (A.x - (B.x + B.x_)) + (A.y - (B.y + B.y_)) * (A.y - (B.y + B.y_)) <= A.size * A.size
+        ) {
+            A.color = "red";
+        } else if (
+            Math.abs(A.x - (B.x + B.x_ / 2)) <= B.x_ / 2 + A.size &&
+            Math.abs(A.y - (B.y + B.y_ / 2)) <= B.y_ / 2 ||
+            Math.abs(A.x - (B.x + B.x_ / 2)) <= B.x_ / 2 &&
+            Math.abs(A.y - (B.y + B.y_ / 2)) <= B.y_ / 2 + A.size
+        ) {
+            A.color = "red";
+        } else {
+            A.color = "white";
+        }
+
+        test1.innerText = "四角横幅:"+B.x_+"、四角縦幅:"+B.y_;
+        test2.innerText = "丸サイズ:"+A.size;
+    }
+
+
+    document.addEventListener("keydown", sousa);
+
+    function sousa(ele) {
+        if (ele.key == "ArrowRight" || ele.key == "Right") B.idou = "right";
+        if (ele.key == "ArrowLeft" || ele.key == "Left") B.idou = "left";
+        if (ele.key == "ArrowDown" || ele.key == "Down") B.idou = "down";
+        if (ele.key == "ArrowUp" || ele.key == "Up") B.idou = "up";
+        if(ele.key == "1") B.x_ += 1;
+        if(ele.key == "2") B.x_ -= 1;
+        if(ele.key == "3") B.y_ += 1;
+        if(ele.key == "4") B.y_ -= 1;
+        if(ele.key == "5") A.size += 1;
+        if(ele.key == "6") A.size -= 1;
+    }
+    document.addEventListener("keyup", sousa2);
+
+    function sousa2(ele) {
+        B.idou = " ";
+    }
+
+</script>

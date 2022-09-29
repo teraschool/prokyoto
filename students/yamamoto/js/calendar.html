@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>可憐なカレンダー</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Comfortaa&display=swap" rel="stylesheet">
+    <style>
+        table th,
+        table,
+        td {
+            border: solid 1px #333;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+            font: 16px Comfortaa, cursive;
+            color: #766;
+            background-color: #fefefe;
+            box-shadow: 0 2px 2px #0003;
+        }
+
+        table caption {
+            caption-side: top;
+            font: 36px Comfortaa, cursive;
+            margin-bottom: 1em;
+        }
+
+        table tr {
+            margin: 0;
+        }
+
+        table td {
+            width: 5em;
+            height: 5em;
+            text-align: right;
+            vertical-align: bottom;
+            padding: 0;
+        }
+
+        table td section {
+            padding: 0.2em 0.4em;
+            margin: 0.1em;
+            display: inline-block;
+        }
+
+        table th {
+            text-align: center;
+            width: 5em;
+            height: 1.2em;
+        }
+
+        .sun {
+            color: floralwhite;
+            background-color: darksalmon;
+        }
+
+        .sat {
+            color: floralwhite;
+            background-color: darkturquoise;
+        }
+
+        .today {
+            border-radius: 50%;
+            background-color: firebrick;
+            color: floralwhite;
+        }
+
+        .notTargetMonth {
+            opacity: 0.25;
+        }
+
+        #table {
+            margin: 100px;
+        }
+
+    </style>
+</head>
+
+<body>
+    <center>
+        <div id="table"></div>
+    </center>
+</body>
+<script>
+    function create_calendar(today) {
+        let date = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+        let t = document.createElement("table");
+
+        let monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        t.createCaption().appendChild(document.createTextNode(monthNames[date.getMonth()]));
+
+        let days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        let daysRow = t.insertRow(-1);
+        for (let i = 0; i < days.length; i++) {
+            let th = document.createElement("th");
+            switch (i) {
+                case 0:
+                    th.classList.add("sun");
+                    break;
+                case 6:
+                    th.classList.add("sat");
+                    break;
+                default:
+                    break;
+            }
+            th.appendChild(document.createTextNode(days[i]));
+            daysRow.appendChild(th);
+        }
+
+        date.setDate(date.getDate() - date.getDay());
+
+        let tr, td, sect;
+        while (date.getMonth() <= today.getMonth()) {
+            tr = t.insertRow(-1);
+            for (let day = 0; day < 7; day++) {
+                td = tr.insertCell(-1);
+                sect = document.createElement("section");
+                switch (day) {
+                    case 0:
+                        td.classList.add("sun");
+                        break;
+                    case 6:
+                        td.classList.add("sat");
+                        break;
+                    default:
+                        break;
+                }
+                if (date.getMonth() != today.getMonth())
+                    td.classList.add("notTargetMonth");
+                else {
+                    if (date.getDate() == today.getDate())
+                        sect.classList.add("today");
+                }
+                sect.appendChild(document.createTextNode(date.getDate()));
+                td.append(sect);
+                date.setDate(date.getDate() + 1);
+            }
+        }
+        return t;
+    }
+
+    document.getElementById("table").appendChild(create_calendar(new Date()));
+
+</script>
+
+</html>

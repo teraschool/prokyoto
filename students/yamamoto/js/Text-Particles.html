@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Particles Animation</title>
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #wrapper {
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            display: block;
+            cursor: none;
+        }
+
+    </style>
+</head>
+
+<body>
+    <div id="wrapper">
+        <canvas id="canvas"></canvas>
+    </div>
+</body>
+<script>
+    const start = performance.now();
+    let UPDATED = false;
+    let GRAB = true;
+    let TEXT = "Particles";
+    let FONT = "ubuntu";
+
+    const wrapper = document.getElementById("wrapper");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let particles = [];
+
+    const mouse = {
+        x: 0,
+        y: 0
+    };
+
+    const regex = new RegExp(/^\w{1}$|^[ ]$/);
+
+    window.addEventListener("resize", function() {
+        window.requestAnimationFrame(resize);
+    });
+
+    window.addEventListener("load", function() {
+        resize();
+        mouse.x = canvas.width / 2;
+        mouse.y = canvas.height / 2;
+
+        set_particles(TEXT, "128px " + FONT);
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        requestAnimationFrame(draw);
+    });
+
+    window.addEventListener("keydown", function(e) {
+        const key = e.key;
+        if (key === "Enter") {
+            if (UPDATED) {
+                particles = [];
+                set_particles(TEXT, "128px " + FONT);
+                UPDATED = false;
+            }
+        }
+        if (key === "Backspace") {
+            TEXT = TEXT.slice(0, -1);
+            UPDATED = true;
+        } else if (regex.test(key)) {
+            TEXT += key;
+            UPDATED = true;
+        }
+    });
+
+    canvas.addEventListener("mousemove", function(e) {
+        const rect = e.target.getBoundingClientRect();
+        mouse.x = e.clientX - rect.left;
+        mouse.y = e.clientY - rect.top;
+    });
+
+    canvas.addEventListener("mousedown", function() {
+        GRAB = !GRAB;
+        if (GRAB)
+            grabParticles();
+        else
+            releaseParticles();
+        return;
+    });
+
+    function random(a, b) {
+        return Math.random() * (Math.max(a, b) - Math.min(a, b)) + Math.min(a, b);
+    }
+
+    let sample = undefined;
+    let medianed = undefined;
+
+    function set_particles(text, font) {
+        const vcan = document.createElement("canvas");
+        const vtx = vcan.getContext("2d");
+        vtx.font = font;
+        const w = Math.floor(vtx.measureText(text).width);
+        const h = 128;
+
+        vcan.width = w;
+        vcan.height = h;
+
+        vtx.font = font;
+        vtx.textAlign = "center";
+        vtx.textBaseline = "middle";
+        vtx.fillStyle = "black";
+        vtx.fillText(text, w / 2, h / 2);
+
+        const data = vtx.getImageData(0, 0, w, h);
+        const out = median(data, vtx, 3);
+
+        for (let y = 0; y < h; y += 5) {
+            for (let x = 0; x < w; x += 5) {
+                const i = (x + y * w) * 4;
+                if (out.data[i + 3] > 128) {
+                    particles.push(new Particle(x - w / 2, y - h / 2, 1.5, "black"));
+                }
+            }
+        }
+        sample = data;
+        medianed = out;
+    }
+
+    function median(input, c, rad) {
+        const output = c.createImageData(input.width, input.height);
+        for (let y = 0; y < output.height; y++) {
+            for (let x = 0; x < output.width; x++) {
+                const i = (x + y * output.width) * 4;
+                const med = getMedian(input, i, rad);
+                output.data[i] = med.r;
+                output.data[i + 1] = med.g;
+                output.data[i + 2] = med.b;
+                output.data[i + 3] = med.a;
+            }
+        }
+        return output;
+    }
+
+    function getMedian(data, i, rad) {
+        let n = 0;
+        let r = [];
+        let g = [];
+        let b = [];
+        let a = [];
+        for (let y = -rad; y < rad; y++) {
+            for (let x = -rad; x < rad; x++) {
+                let j = i + (y * data.width + x) * 4;
+                if (j < 0 || j >= data.data.length - 1) continue;
+                r[n] = data.data[j];
+                g[n] = data.data[j + 1];
+                b[n] = data.data[j + 2];
+                a[n] = data.data[j + 3];
+                n++;
+            }
+        }
+
+        return {
+            r: medianValue(r),
+            g: medianValue(g),
+            b: medianValue(b),
+            a: medianValue(a)
+        }
+    }
+
+    function medianValue(array) {
+        array.sort(function(a, b) {
+            if (a < b) return -1;
+            if (a > b) return 1;
+            return 0;
+        });
+        const len = array.length;
+        if (len % 2 == 0) {
+            let m1 = len / 2 - 1;
+            let m2 = len / 2;
+            return (array[m1] + array[m2]) / 2;
+        } else {
+            let m = (len + 1) / 2 - 1;
+            return array[m];
+        }
+    }
+
+    function resize() {
+        canvas.width = wrapper.offsetWidth;
+        canvas.height = wrapper.offsetHeight;
+    }
+
+    function releaseParticles() {
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].mx += particles[i].x;
+            particles[i].my += particles[i].y;
+            particles[i].vx = random(-2, 2);
+            particles[i].vy = random(-2, 0);
+        }
+    }
+
+    function grabParticles() {
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].mx -= particles[i].x;
+            particles[i].my -= particles[i].y;
+        }
+    }
+
+    function Particle(x, y, r, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = 0;
+        this.vy = 0;
+        this.mx = random(0, canvas.width);
+        this.my = random(0, canvas.height);
+        this.tx = x;
+        this.ty = y;
+        this.r = r;
+        this.color = color;
+
+        this.draw = function() {
+            if (GRAB) {
+                this.mx += (this.tx - this.mx) / 20;
+                this.my += (this.ty - this.my) / 20;
+            } else {
+                this.vy += 0.5;
+
+                if (this.mx <= 0 || this.mx >= canvas.width)
+                    this.vx = -this.vx * 0.3;
+                if (this.my >= canvas.height)
+                    this.vy = -this.vy * 0.6;
+
+                this.mx += this.vx;
+                this.my += this.vy;
+            }
+
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            if (GRAB) {
+                ctx.arc(this.mx + this.x, this.my + this.y, this.r, 0, 2 * Math.PI);
+            } else {
+                ctx.arc(this.mx, this.my, this.r, 0, 2 * Math.PI);
+            }
+            ctx.fill();
+        }
+    }
+
+    function draw() {
+        const elapsedTime = (performance.now() - start) / 1000;
+        requestAnimationFrame(draw);
+
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        for (let k = 0; k < particles.length / 5; k++) {
+            const j = Math.floor(random(0, particles.length));
+            particles[j].tx = mouse.x;
+            particles[j].ty = mouse.y;
+        }
+
+        ctx.save();
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].draw();
+        }
+        ctx.restore();
+
+        const x = canvas.width / 2;
+        const y = canvas.height * 0.95;
+
+        ctx.save();
+        ctx.fillStyle = "black";
+        ctx.textAlign = "center";
+        if (elapsedTime < 5) {
+            ctx.font = "16px serif";
+            ctx.fillText("クリックで粒子を つかむ/はなす", x, y - 32);
+            ctx.fillText("好きな英数字を入力してエンターで変更できます", x, y - 16);
+            ctx.fillText("打ち間違えた時の為にバックスペースも用意してます!", x, y);
+        } else {
+            ctx.font = "24px " + FONT;
+            ctx.fillText(TEXT, x, y);
+            ctx.globalAlpha = Math.floor(elapsedTime * 2) % 2 == 0 ? 0 : 1;
+            ctx.fillRect(4 + x + ctx.measureText(TEXT).width / 2, y - 24, 0.5, 24);
+        }
+        ctx.restore();
+
+        if (typeof sample !== "undefined" && typeof medianed !== "undefined") {
+            //ctx.putImageData(sample, 50, 50);
+            //ctx.putImageData(medianed, 50, 200)
+        }
+
+    }
+
+</script>
+
+</html>

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+
+    </style>
+</head>
+
+<body>
+    <canvas id="c"></canvas>
+</body>
+<script>
+    //参考: http://marupeke296.com/COL_2D_No5_PolygonToCircle.html
+
+    function Vec2D(x, y) {
+        this.x = x;
+        this.y = y;
+    }
+
+    Vec2D.prototype.magnitude = function() {
+        return Math.sqrt(this.x ** 2 + this.y ** 2);
+    };
+
+    Vec2D.prototype.add = function(vec2d) {
+        return new Vec2D(this.x + vec2d.x, this.y + vec2d.y);
+    }
+
+    Vec2D.prototype.subtract = function(vec2d) {
+        return new Vec2D(this.x - vec2d.x, this.y - vec2d.y);
+    }
+
+    Vec2D.prototype.dot = function(vec2d) {
+        return this.x * vec2d.x + this.y * vec2d.y;
+    }
+
+    Vec2D.prototype.cross = function(vec2d) {
+        return this.x * vec2d.y - vec2d.x * this.y;
+    }
+
+    Vec2D.prototype.normalize = function() {
+        const magnitude = this.magnitude();
+        return new Vec2D(this.x / magnitude, this.y / magnitude);
+    }
+
+    function Circle(x, y, radius) {
+        this.type = "circle";
+        this.location = new Vec2D(x, y);
+        this.velocity = new Vec2D(0, 0);
+        this.acceleration = new Vec2D(0, 0);
+        this.color = "white";
+        this.radius = radius;
+    }
+
+    Circle.prototype.update = function() {
+        this.velocity.add(this.acceleration);
+        this.location.add(this.velocity);
+    }
+
+    Circle.prototype.draw = function(g) {
+        g.lineWidth = 1.5;
+        g.strokeStyle = this.color;
+        g.beginPath();
+        g.arc(this.location.x, this.location.y, this.radius, 0, 2 * Math.PI);
+        g.closePath();
+        g.stroke();
+    }
+
+    function Shape(x, y, posX, posY) {
+        this.type = "square";
+        this.location = new Vec2D(x, y);
+        this.velocity = new Vec2D(0, 0);
+        this.acceleration = new Vec2D(0, 0);
+        this.color = "salmon";
+        this.posX = posX;
+        this.posY = posY;
+    }
+
+    Shape.prototype.update = function() {
+        this.velocity.add(this.acceleration);
+        this.location.add(this.velocity);
+    }
+
+    Shape.prototype.draw = function(g) {
+        g.lineWidth = 1.5;
+        g.strokeStyle = this.color;
+        g.beginPath();
+        g.moveTo(this.location.x + this.posX[0], this.location.y + this.posY[0]);
+        for (let i = 1; i < this.posX.length; i++) {
+            g.lineTo(this.location.x + this.posX[i], this.location.y + this.posY[i]);
+        }
+        g.lineTo(this.location.x + this.posX[0], this.location.y + this.posY[0]);
+        g.closePath();
+        g.stroke();
+    }
+
+    const c = document.querySelector("#c");
+    const g = c.getContext("2d");
+
+    const mouse = {
+        x: 0,
+        y: 0
+    };
+    let circle;
+    let shape;
+
+    const autosize = function() {
+        c.width = window.innerWidth;
+        c.height = window.innerHeight;
+    }
+
+    window.addEventListener("resize", () => window.requestAnimationFrame(autosize));
+    window.addEventListener("load", () => {
+        autosize();
+
+        circle = new Circle(mouse.x, mouse.y, 45);
+
+        vertex = regularStarPolyVertexs(200, Math.floor(Math.random() * 7) + 3);
+        shape = new Shape(0, 0, vertex.posX, vertex.posY);
+
+        //Drawing Method
+        (function() {
+
+            update(performance.now());
+            draw();
+
+            //Update frame
+            window.requestAnimationFrame(arguments.callee);
+        })();
+    });
+    c.addEventListener("mousemove", (e) => {
+        mouse.x = e.clientX - c.width / 2;
+        mouse.y = e.clientY - c.height / 2;
+    });
+
+    function isVectorHitCircle(circle, start, end) {
+        const V = new Vec2D(end.x - start.x, end.y - start.y);
+        const A = new Vec2D(circle.location.x - start.x, circle.location.y - start.y);
+        const B = new Vec2D(circle.location.x - end.x, circle.location.y - end.y);
+
+        const d = Math.abs(A.cross(V.normalize()));
+        if (A.dot(V) * B.dot(V) <= 0) {
+            if (d <= circle.radius) {
+                return true;
+            }
+        } else if (circle.radius >= A.magnitude() || circle.radius >= B.magnitude()) {
+            return true;
+        }
+        return false;
+    }
+
+    function isCircleInsideSquare(circle, start, end) {
+        const V = new Vec2D(end.x - start.x, end.y - start.y);
+        const A = new Vec2D(circle.location.x - start.x, circle.location.y - start.y);
+        return (A.cross(V) <= 0);
+    }
+
+    function isContacts(circle, shape) {
+        const shapeLoc = shape.location;
+
+        let isHit = false;
+        let isInside = true;
+        let start = new Vec2D(shapeLoc.x + shape.posX[0], shapeLoc.y + shape.posY[0]);
+        let end;
+        for (let i = 1; i < shape.posX.length; i++) {
+            end = new Vec2D(shapeLoc.x + shape.posX[i], shapeLoc.y + shape.posY[i]);
+            isHit |= isVectorHitCircle(circle, start, end);
+            isInside &= isCircleInsideSquare(circle, start, end);
+            start = end;
+        }
+        end = new Vec2D(shapeLoc.x + shape.posX[0], shapeLoc.y + shape.posY[0]);
+        isHit |= isVectorHitCircle(circle, start, end);
+        isInside &= isCircleInsideSquare(circle, start, end);
+        return isHit | isInside;
+    }
+
+    function update(t) {
+        //Update circle's position
+        circle.location.x = mouse.x;
+        circle.location.y = mouse.y;
+
+        //Update square
+        shape.update();
+
+        circle.color = isContacts(circle, shape) ? "gold" : "royalblue";
+    }
+
+    function draw() {
+        //Rest canvas
+        g.fillStyle = "#333";
+        g.fillRect(0, 0, c.width, c.height);
+
+        g.setTransform(1, 0, 0, 1, c.width / 2, c.height / 2);
+
+        shape.draw(g);
+        circle.draw(g);
+
+        g.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function regularStarPolyVertexs(scale, n) {
+        const posX = [];
+        const posY = [];
+
+        const r = Math.PI / n;
+        for (let i = 0; i < n * 2; i += 2) {
+            posX.push(scale * Math.cos(r * i));
+            posY.push(scale * Math.sin(r * i));
+
+            posX.push(scale * 0.6 * Math.cos(r * (i + 1)));
+            posY.push(scale * 0.6 * Math.sin(r * (i + 1)));
+        }
+
+        return {
+            posX: posX,
+            posY: posY
+        };
+    }
+
+</script>
+
+</html>
